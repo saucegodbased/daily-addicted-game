@@ -414,7 +414,12 @@
             if (allComplete) {
                 state.completed = true;
                 saveState();
-                setTimeout(showCompletionModal, 600);
+                setTimeout(function() {
+                    if (typeof window.launchConfetti === 'function') {
+                        window.launchConfetti();
+                    }
+                    showCompletionModal();
+                }, 600);
             } else {
                 saveState();
             }
