@@ -7,3 +7,9 @@
 - **Summary**: Extracted shared `loadPuzzleIntoState()` helper to eliminate duplication between `loadNewSpeedRunPuzzle` and `initDailyPuzzle`. Removed dead `speedrunState.active` field and redundant state initialization in `startSpeedRunMode`.
 - **Tests run**: no — static site with no test suite
 - **Outcome**: success
+
+## reviewer — 2026-03-26T19:45:00Z
+- **Summary**: issues found and fixed
+- **quality_checklist**: 5 items verified (all passing)
+- **Findings**: 2 code quality issues fixed (stale state.selected on daily restore, missing interval guard in startSpeedRunTimer); 2 error handling notes (pre-existing empty catch in loadState, comment-only catch in saveState — MEDIUM, not blocking); no tests in project (static site)
+- **Outcome**: success / exit_signal: true (fixes committed)
