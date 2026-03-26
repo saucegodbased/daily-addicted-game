@@ -244,8 +244,7 @@
     var speedrunState = {
         timer: 150,
         intervalId: null,
-        solved: 0,
-        active: false
+        solved: 0
     };
 
     var state = {
@@ -614,16 +613,13 @@
         }, 2500);
     }
 
-    // ========== SPEED RUN ==========
-    function getRandomSeed() {
-        return Math.floor(Math.random() * 2147483647) + 1;
-    }
-
-    function loadNewSpeedRunPuzzle() {
-        var puzzle = generatePuzzle(getRandomSeed());
+    // ========== PUZZLE LOADING ==========
+    function loadPuzzleIntoState(puzzle) {
         state.grid = [];
+        state.initialGrid = [];
         for (var i = 0; i < 4; i++) {
             state.grid.push(puzzle.grid[i].slice());
+            state.initialGrid.push(puzzle.grid[i].slice());
         }
         state.solution = puzzle.solution;
         state.fixed = puzzle.fixed;
@@ -633,11 +629,16 @@
         state.completed = false;
         state.rowsComplete = [false, false, false, false];
         state.selected = null;
-        state.initialGrid = [];
-        for (var j = 0; j < 4; j++) {
-            state.initialGrid.push(puzzle.grid[j].slice());
-        }
         checkRows();
+    }
+
+    // ========== SPEED RUN ==========
+    function getRandomSeed() {
+        return Math.floor(Math.random() * 2147483647) + 1;
+    }
+
+    function loadNewSpeedRunPuzzle() {
+        loadPuzzleIntoState(generatePuzzle(getRandomSeed()));
         render();
     }
 
@@ -659,7 +660,6 @@
 
     function startSpeedRunTimer() {
         speedrunState.timer = 150;
-        speedrunState.active = true;
         updateTimerDisplay();
         speedrunState.intervalId = setInterval(function() {
             speedrunState.timer--;
@@ -675,7 +675,6 @@
             clearInterval(speedrunState.intervalId);
             speedrunState.intervalId = null;
         }
-        speedrunState.active = false;
         state.completed = true;
         render();
         showSpeedRunModal();
@@ -729,8 +728,6 @@
         document.querySelector('footer p').textContent = 'Solve as many puzzles as you can!';
 
         speedrunState.solved = 0;
-        speedrunState.timer = 150;
-        speedrunState.active = true;
         updateSpeedrunSolvedDisplay();
 
         loadNewSpeedRunPuzzle();
@@ -758,27 +755,10 @@
             state.par = puzzle.par;
         } else {
             state.date = dateStr;
-            state.grid = [];
-            for (var i = 0; i < 4; i++) {
-                state.grid.push(puzzle.grid[i].slice());
-            }
-            state.solution = puzzle.solution;
-            state.fixed = puzzle.fixed;
-            state.words = puzzle.words;
-            state.par = puzzle.par;
-            state.swaps = 0;
-            state.completed = false;
-            state.rowsComplete = [false, false, false, false];
-            state.initialGrid = [];
-            for (var j = 0; j < 4; j++) {
-                state.initialGrid.push(puzzle.grid[j].slice());
-            }
-
-            checkRows();
+            loadPuzzleIntoState(puzzle);
             saveState();
         }
 
-        state.selected = null;
         render();
 
         if (state.completed) {
