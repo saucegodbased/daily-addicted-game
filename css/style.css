@@ -107,6 +107,197 @@ body {
     padding: 0 16px;
 }
 
+/* ========== Mode Select ========== */
+#mode-select {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-height: 70vh;
+    width: 100%;
+    padding: 32px 0;
+}
+
+.game-active #mode-select {
+    display: none;
+}
+
+#app:not(.game-active) header,
+#app:not(.game-active) main,
+#app:not(.game-active) footer {
+    display: none;
+}
+
+.mode-select-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    background: linear-gradient(135deg, #e8e8f0, #a8a8c0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+}
+
+.mode-select-subtitle {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-bottom: 40px;
+}
+
+.mode-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 320px;
+}
+
+.mode-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 24px 20px;
+    border: 2px solid transparent;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: var(--font-main);
+    background: var(--bg-secondary);
+}
+
+.mode-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.mode-btn:active {
+    transform: translateY(0);
+}
+
+.mode-btn-icon {
+    font-size: 2rem;
+    margin-bottom: 4px;
+}
+
+.mode-btn-label {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.mode-btn-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.mode-btn-daily {
+    border-color: var(--color-btn-primary);
+}
+
+.mode-btn-daily:hover {
+    background: rgba(67, 97, 238, 0.15);
+}
+
+.mode-btn-speedrun {
+    border-color: var(--color-accent);
+}
+
+.mode-btn-speedrun:hover {
+    background: rgba(233, 69, 96, 0.15);
+}
+
+/* ========== Speed Run Bar ========== */
+#speedrun-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 20px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 16px;
+}
+
+#speedrun-bar.hidden {
+    display: none;
+}
+
+#speedrun-timer {
+    font-size: 1.8rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+}
+
+#speedrun-timer.critical {
+    color: var(--color-accent);
+    animation: timerPulse 1s ease-in-out infinite;
+}
+
+@keyframes timerPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+#speedrun-solved {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* ========== Speed Run Modal ========== */
+#speedrun-title {
+    color: var(--color-accent);
+}
+
+#speedrun-result-stats {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+#speedrun-result-stats .stat-value {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--color-accent);
+}
+
+#speedrun-result-stats .stat-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.btn-speedrun {
+    background: var(--color-accent);
+    color: white;
+    margin-bottom: 10px;
+}
+
+.btn-speedrun:hover {
+    background: #d13652;
+    transform: translateY(-1px);
+}
+
+.btn-speedrun:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
 /* ========== Header ========== */
 header {
     width: 100%;

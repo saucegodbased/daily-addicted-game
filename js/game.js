@@ -240,6 +240,13 @@
     var STORAGE_KEY = 'daily-addicted-state';
     var VISITED_KEY = 'daily-addicted-visited';
 
+    var gameMode = null; // 'daily' | 'speedrun'
+    var speedrunState = {
+        timer: 150,
+        intervalId: null,
+        solved: 0
+    };
+
     var state = {
         date: null,
         grid: null,
@@ -255,6 +262,7 @@
     };
 
     function saveState() {
+        if (gameMode === 'speedrun') return;
         try {
             var toSave = {
                 date: state.date,
@@ -412,14 +420,20 @@
             }
 
             if (allComplete) {
-                state.completed = true;
-                saveState();
-                setTimeout(function() {
-                    if (typeof window.launchConfetti === 'function') {
-                        window.launchConfetti();
-                    }
-                    showCompletionModal();
-                }, 600);
+                if (gameMode === 'speedrun') {
+                    speedrunState.solved++;
+                    updateSpeedrunSolvedDisplay();
+                    loadNewSpeedRunPuzzle();
+                } else {
+                    state.completed = true;
+                    saveState();
+                    setTimeout(function() {
+                        if (typeof window.launchConfetti === 'function') {
+                            window.launchConfetti();
+                        }
+                        showCompletionModal();
+                    }, 600);
+                }
             } else {
                 saveState();
             }
@@ -599,13 +613,137 @@
         }, 2500);
     }
 
+    // ========== PUZZLE LOADING ==========
+    function loadPuzzleIntoState(puzzle) {
+        state.grid = [];
+        state.initialGrid = [];
+        for (var i = 0; i < 4; i++) {
+            state.grid.push(puzzle.grid[i].slice());
+            state.initialGrid.push(puzzle.grid[i].slice());
+        }
+        state.solution = puzzle.solution;
+        state.fixed = puzzle.fixed;
+        state.words = puzzle.words;
+        state.par = puzzle.par;
+        state.swaps = 0;
+        state.completed = false;
+        state.rowsComplete = [false, false, false, false];
+        state.selected = null;
+        checkRows();
+    }
+
+    // ========== SPEED RUN ==========
+    function getRandomSeed() {
+        return Math.floor(Math.random() * 2147483647) + 1;
+    }
+
+    function loadNewSpeedRunPuzzle() {
+        loadPuzzleIntoState(generatePuzzle(getRandomSeed()));
+        render();
+    }
+
+    function updateTimerDisplay() {
+        var el = document.getElementById('speedrun-timer');
+        var minutes = Math.floor(speedrunState.timer / 60);
+        var seconds = speedrunState.timer % 60;
+        el.textContent = minutes + ':' + padZero(seconds);
+        if (speedrunState.timer <= 30) {
+            el.classList.add('critical');
+        } else {
+            el.classList.remove('critical');
+        }
+    }
+
+    function updateSpeedrunSolvedDisplay() {
+        document.getElementById('speedrun-solved').textContent = 'Solved: ' + speedrunState.solved;
+    }
+
+    function startSpeedRunTimer() {
+        if (speedrunState.intervalId) {
+            clearInterval(speedrunState.intervalId);
+            speedrunState.intervalId = null;
+        }
+        speedrunState.timer = 150;
+        updateTimerDisplay();
+        speedrunState.intervalId = setInterval(function() {
+            speedrunState.timer--;
+            updateTimerDisplay();
+            if (speedrunState.timer <= 0) {
+                endSpeedRun();
+            }
+        }, 1000);
+    }
+
+    function endSpeedRun() {
+        if (speedrunState.intervalId) {
+            clearInterval(speedrunState.intervalId);
+            speedrunState.intervalId = null;
+        }
+        state.completed = true;
+        render();
+        showSpeedRunModal();
+    }
+
+    function showSpeedRunModal() {
+        var statsEl = document.getElementById('speedrun-result-stats');
+        statsEl.innerHTML =
+            '<div class="stat">' +
+                '<span class="stat-value">' + speedrunState.solved + '</span>' +
+                '<span class="stat-label">Puzzles Solved</span>' +
+            '</div>';
+        document.getElementById('speedrun-modal').classList.remove('hidden');
+    }
+
+    function hideSpeedRunModal() {
+        document.getElementById('speedrun-modal').classList.add('hidden');
+    }
+
+    // ========== MODE MANAGEMENT ==========
+    function showModeSelect() {
+        if (speedrunState.intervalId) {
+            clearInterval(speedrunState.intervalId);
+            speedrunState.intervalId = null;
+        }
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+        gameMode = null;
+        document.getElementById('app').classList.remove('game-active');
+        hideSpeedRunModal();
+        hideCompleteModal();
+        document.getElementById('speedrun-bar').classList.add('hidden');
+    }
+
+    function startDailyMode() {
+        gameMode = 'daily';
+        document.getElementById('app').classList.add('game-active');
+        document.getElementById('speedrun-bar').classList.add('hidden');
+        document.getElementById('puzzle-number').style.display = '';
+        document.querySelector('footer p').textContent = 'A new puzzle every day at midnight UTC';
+        initDailyPuzzle();
+    }
+
+    function startSpeedRunMode() {
+        gameMode = 'speedrun';
+        document.getElementById('app').classList.add('game-active');
+        document.getElementById('speedrun-bar').classList.remove('hidden');
+        document.getElementById('puzzle-number').style.display = 'none';
+        document.querySelector('footer p').textContent = 'Solve as many puzzles as you can!';
+
+        speedrunState.solved = 0;
+        updateSpeedrunSolvedDisplay();
+
+        loadNewSpeedRunPuzzle();
+        startSpeedRunTimer();
+    }
+
     // ========== INITIALIZATION ==========
-    function init() {
+    function initDailyPuzzle() {
         var dateStr = getDateString();
         var seed = getDateSeed();
         var puzzle = generatePuzzle(seed);
 
-        // Try to restore saved state
         var saved = loadState();
 
         if (saved) {
@@ -619,32 +757,22 @@
             state.fixed = puzzle.fixed;
             state.words = puzzle.words;
             state.par = puzzle.par;
+            state.selected = null;
         } else {
             state.date = dateStr;
-            state.grid = [];
-            for (var i = 0; i < 4; i++) {
-                state.grid.push(puzzle.grid[i].slice());
-            }
-            state.solution = puzzle.solution;
-            state.fixed = puzzle.fixed;
-            state.words = puzzle.words;
-            state.par = puzzle.par;
-            state.swaps = 0;
-            state.completed = false;
-            state.rowsComplete = [false, false, false, false];
-            state.initialGrid = [];
-            for (var j = 0; j < 4; j++) {
-                state.initialGrid.push(puzzle.grid[j].slice());
-            }
-
-            // Check if any row is already complete (unlikely but possible)
-            checkRows();
+            loadPuzzleIntoState(puzzle);
             saveState();
         }
 
-        state.selected = null;
+        render();
 
-        // Set up event listeners
+        if (state.completed) {
+            setTimeout(showCompletionModal, 400);
+        }
+    }
+
+    function init() {
+        // Set up event listeners (once)
         document.getElementById('help-btn').addEventListener('click', showHelpModal);
         document.getElementById('help-close-btn').addEventListener('click', hideHelpModal);
 
@@ -668,19 +796,27 @@
             })(modals[m]);
         }
 
+        // Mode selection buttons
+        document.getElementById('mode-daily-btn').addEventListener('click', startDailyMode);
+        document.getElementById('mode-speedrun-btn').addEventListener('click', startSpeedRunMode);
+
+        // Speed run modal buttons
+        document.getElementById('speedrun-again-btn').addEventListener('click', function() {
+            hideSpeedRunModal();
+            startSpeedRunMode();
+        });
+        document.getElementById('speedrun-menu-btn').addEventListener('click', function() {
+            showModeSelect();
+        });
+
         // Show help on first visit
         if (!localStorage.getItem(VISITED_KEY)) {
             localStorage.setItem(VISITED_KEY, 'true');
             setTimeout(showHelpModal, 400);
         }
 
-        // Render
-        render();
-
-        // If already completed, show modal
-        if (state.completed) {
-            setTimeout(showCompletionModal, 400);
-        }
+        // Show mode selector
+        showModeSelect();
     }
 
     // Start when DOM is ready

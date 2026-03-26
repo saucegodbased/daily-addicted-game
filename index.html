@@ -22,6 +22,23 @@
 </head>
 <body>
     <div id="app">
+        <div id="mode-select">
+            <div class="mode-select-title">Daily Addicted</div>
+            <div class="mode-select-subtitle">Choose your mode</div>
+            <div class="mode-buttons">
+                <button id="mode-daily-btn" class="mode-btn mode-btn-daily">
+                    <span class="mode-btn-icon">📅</span>
+                    <span class="mode-btn-label">Daily Puzzle</span>
+                    <span class="mode-btn-desc">Today's challenge</span>
+                </button>
+                <button id="mode-speedrun-btn" class="mode-btn mode-btn-speedrun">
+                    <span class="mode-btn-icon">⚡</span>
+                    <span class="mode-btn-label">Speed Run</span>
+                    <span class="mode-btn-desc">2.5 minutes, solve as many as you can</span>
+                </button>
+            </div>
+        </div>
+
         <header>
             <button id="help-btn" class="header-btn" aria-label="How to play" title="How to play">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -53,6 +70,10 @@
         </header>
 
         <main>
+            <div id="speedrun-bar" class="hidden">
+                <div id="speedrun-timer">2:30</div>
+                <div id="speedrun-solved">Solved: 0</div>
+            </div>
             <div id="message-bar" class="hidden"></div>
             <div id="grid-container"></div>
             <div id="swap-counter">Swaps: 0 | Par: 0</div>
@@ -102,6 +123,17 @@
                     <p class="example-caption">Green = fixed clue, Gray = needs swapping</p>
                 </div>
                 <button id="help-close-btn" class="btn btn-primary">Got it!</button>
+            </div>
+        </div>
+
+        <!-- Speed Run Results Modal -->
+        <div id="speedrun-modal" class="modal hidden" role="dialog" aria-modal="true">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <h2 id="speedrun-title">Speed Run Over!</h2>
+                <div id="speedrun-result-stats"></div>
+                <button id="speedrun-again-btn" class="btn btn-speedrun">Play Again</button>
+                <button id="speedrun-menu-btn" class="btn btn-secondary">Back to Menu</button>
             </div>
         </div>
 
