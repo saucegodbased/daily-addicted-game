@@ -1,0 +1,202 @@
+{
+  "quality": "full",
+  "tasks": [
+    {
+      "id": "theme-toggle",
+      "title": "Add light mode theme with toggle",
+      "description": "Implement a complete light mode theme with a header toggle button. Convert all hardcoded colors in CSS to custom properties, define a light theme palette via [data-theme='light'], add a toggle button replacing the header-spacer, and create theme.js for persistence and OS preference detection.",
+      "acceptance_criteria": "1. Light color scheme defined via [data-theme='light'] CSS custom properties\n2. Toggle button visible in header with sun/moon icons\n3. Theme persisted in localStorage, restored on reload\n4. Defaults to OS prefers-color-scheme when no saved preference\n5. All UI components render correctly in both themes\n6. Confetti works in both themes\n7. Toggle has appropriate aria labels",
+      "claudeMd": "# Project Context\n\nYou are adding a light/dark theme toggle to a vanilla HTML/CSS/JS word puzzle game (Daily Addicted). There is no build system — just static files served directly.\n\n## Files to modify\n\n- `css/style.css` — Theme variables and hardcoded color conversion\n- `index.html` — Toggle button in header, theme.js script tag\n- `js/theme.js` — New file for theme logic\n\n## CSS Architecture\n\nThe existing dark theme uses CSS custom properties in `:root`. However, many colors are hardcoded throughout the stylesheet and MUST be converted to custom properties for theming to work. Here is the complete list of hardcoded colors to convert:\n\n| Location | Current Value | New Variable Name |\n|---|---|---|\n| `header border-bottom` | `rgba(255,255,255,0.08)` | `--border-subtle` |\n| `.header-btn border` | `rgba(255,255,255,0.15)` | `--border-light` |\n| `.header-btn:hover bg` | `rgba(255,255,255,0.05)` | `--hover-overlay` |\n| `.header-btn:hover border` | `rgba(255,255,255,0.25)` | `--border-medium` |\n| `.title-area h1 gradient` | `#e8e8f0, #a8a8c0` | `--title-gradient-start`, `--title-gradient-end` |\n| `.grid-cell.clickable:hover bg` | `#303060` | `--cell-hover-bg` |\n| `.grid-cell.clickable:hover border` | `rgba(255,255,255,0.1)` | `--cell-hover-border` |\n| `.grid-cell.fixed border-color` | `rgba(45,106,79,0.5)` | `--color-fixed-border` |\n| `.grid-cell.complete border-color` | `rgba(64,145,108,0.6)` | `--color-complete-border` |\n| `#swap-counter border` | `rgba(255,255,255,0.06)` | `--border-subtle` (reuse) |\n| `.modal-backdrop bg` | `rgba(0,0,0,0.6)` | `--backdrop-bg` |\n| `.modal-content border` | `rgba(255,255,255,0.08)` | `--border-subtle` (reuse) |\n| `.modal-content box-shadow` | `rgba(0,0,0,0.5)` | `--shadow-heavy` |\n| `.modal-close:hover bg` | `rgba(255,255,255,0.05)` | `--hover-overlay` (reuse) |\n| `.help-example bg` | `rgba(0,0,0,0.2)` | `--bg-inset` |\n| `#complete-title color` | `#52b788` | `--color-success` |\n| `.result-word bg` | `rgba(64,145,108,0.15)` | `--color-success-bg` |\n| `.result-word color` | `#52b788` | `--color-success` (reuse) |\n| `#share-preview bg` | `rgba(0,0,0,0.25)` | `--bg-inset` (reuse or similar) |\n| `#copied-msg color` | `#52b788` | `--color-success` (reuse) |\n| `#next-puzzle border-top` | `rgba(255,255,255,0.06)` | `--border-subtle` (reuse) |\n| `@keyframes rowComplete 50% bg` | `#52b788` | `--color-success` (reuse) |\n\n## Light Theme Palette\n\nDesign direction: **\"warm paper\"** — soft cream background, dark slate text, forest green accents, warm gold selection.\n\n```css\n[data-theme='light'] {\n  --bg-primary: #f5f0e8;        /* warm cream */\n  --bg-secondary: #ede8df;      /* slightly darker cream */\n  --bg-surface: #e2ddd4;        /* card/cell surface */\n  --text-primary: #2c2c34;      /* dark slate */\n  --text-secondary: #6b6b78;    /* medium gray */\n  --text-muted: #9b9ba8;        /* light gray */\n  --color-fixed: #3a8f5c;       /* forest green, slightly brighter for light bg */\n  --color-fixed-text: #1a5c35;  /* dark green text on green bg */\n  --color-complete: #4caf6e;    /* brighter complete green */\n  --color-complete-text: #1a4c2e;\n  --color-selected: #b8941e;    /* warm gold */\n  --color-selected-bg: rgba(184, 148, 30, 0.15);\n  --color-swap-target: rgba(184, 148, 30, 0.08);\n  --color-accent: #d63851;      /* slightly muted red */\n  --color-btn-primary: #3b5ce4; /* blue button */\n  --color-btn-hover: #2f4cc8;\n  /* New variables for hardcoded colors */\n  --border-subtle: rgba(0, 0, 0, 0.08);\n  --border-light: rgba(0, 0, 0, 0.12);\n  --border-medium: rgba(0, 0, 0, 0.2);\n  --hover-overlay: rgba(0, 0, 0, 0.04);\n  --title-gradient-start: #2c2c34;\n  --title-gradient-end: #5a5a68;\n  --cell-hover-bg: #d8d3ca;\n  --cell-hover-border: rgba(0, 0, 0, 0.08);\n  --color-fixed-border: rgba(58, 143, 92, 0.4);\n  --color-complete-border: rgba(76, 175, 110, 0.5);\n  --backdrop-bg: rgba(0, 0, 0, 0.35);\n  --shadow-heavy: rgba(0, 0, 0, 0.15);\n  --bg-inset: rgba(0, 0, 0, 0.06);\n  --color-success: #2d8a4e;\n  --color-success-bg: rgba(45, 138, 78, 0.12);\n}\n```\n\nAlso add the dark-theme values for the new variables to `:root`:\n```css\n:root {\n  /* ...existing vars... */\n  --border-subtle: rgba(255, 255, 255, 0.08);\n  --border-light: rgba(255, 255, 255, 0.15);\n  --border-medium: rgba(255, 255, 255, 0.25);\n  --hover-overlay: rgba(255, 255, 255, 0.05);\n  --title-gradient-start: #e8e8f0;\n  --title-gradient-end: #a8a8c0;\n  --cell-hover-bg: #303060;\n  --cell-hover-border: rgba(255, 255, 255, 0.1);\n  --color-fixed-border: rgba(45, 106, 79, 0.5);\n  --color-complete-border: rgba(64, 145, 108, 0.6);\n  --backdrop-bg: rgba(0, 0, 0, 0.6);\n  --shadow-heavy: rgba(0, 0, 0, 0.5);\n  --bg-inset: rgba(0, 0, 0, 0.2);\n  --color-success: #52b788;\n  --color-success-bg: rgba(64, 145, 108, 0.15);\n}\n```\n\nThen replace every hardcoded color reference in the CSS with its corresponding variable.\n\n## HTML Changes\n\nReplace the `.header-spacer` div in the header with a theme toggle button:\n\n```html\n<button id=\"theme-toggle\" class=\"header-btn\" aria-label=\"Switch to light mode\" title=\"Switch theme\">\n  <svg id=\"theme-icon-dark\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" class=\"hidden\">\n    <circle cx=\"12\" cy=\"12\" r=\"5\"/>\n    <line x1=\"12\" y1=\"1\" x2=\"12\" y2=\"3\"/>\n    <line x1=\"12\" y1=\"21\" x2=\"12\" y2=\"23\"/>\n    <line x1=\"4.22\" y1=\"4.22\" x2=\"5.64\" y2=\"5.64\"/>\n    <line x1=\"18.36\" y1=\"18.36\" x2=\"19.78\" y2=\"19.78\"/>\n    <line x1=\"1\" y1=\"12\" x2=\"3\" y2=\"12\"/>\n    <line x1=\"21\" y1=\"12\" x2=\"23\" y2=\"12\"/>\n    <line x1=\"4.22\" y1=\"19.78\" x2=\"5.64\" y2=\"18.36\"/>\n    <line x1=\"18.36\" y1=\"5.64\" x2=\"19.78\" y2=\"4.22\"/>\n  </svg>\n  <svg id=\"theme-icon-light\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\">\n    <path d=\"M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z\"/>\n  </svg>\n</button>\n```\n\nThe moon icon shows when in dark mode (click to go light), sun icon shows when in light mode (click to go dark). Use a `.hidden` class to toggle visibility.\n\nAdd `<script src=\"js/theme.js\"></script>` BEFORE confetti.js and game.js — ideally in the `<head>` with no `defer` to prevent flash of wrong theme. Actually, since this sets a data attribute on `<html>`, place it as early as possible. Put a small inline script in `<head>` that reads localStorage and sets the attribute immediately, then load `theme.js` at the bottom for the toggle logic.\n\nBetter approach for no-flash:\n```html\n<!-- In <head>, after CSS link -->\n<script>\n  (function() {\n    var saved = localStorage.getItem('theme');\n    if (saved) {\n      document.documentElement.setAttribute('data-theme', saved);\n    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {\n      document.documentElement.setAttribute('data-theme', 'light');\n    }\n  })();\n</script>\n```\n\nThen `js/theme.js` at the bottom handles the toggle button and icon state.\n\n## js/theme.js\n\n```javascript\n(function() {\n  'use strict';\n\n  var THEME_KEY = 'theme';\n\n  function getTheme() {\n    return document.documentElement.getAttribute('data-theme') || 'dark';\n  }\n\n  function setTheme(theme) {\n    document.documentElement.setAttribute('data-theme', theme);\n    localStorage.setItem(THEME_KEY, theme);\n    updateToggleButton(theme);\n  }\n\n  function updateToggleButton(theme) {\n    var toggle = document.getElementById('theme-toggle');\n    var sunIcon = document.getElementById('theme-icon-dark');\n    var moonIcon = document.getElementById('theme-icon-light');\n    if (!toggle || !sunIcon || !moonIcon) return;\n\n    if (theme === 'light') {\n      sunIcon.style.display = '';\n      moonIcon.style.display = 'none';\n      toggle.setAttribute('aria-label', 'Switch to dark mode');\n    } else {\n      sunIcon.style.display = 'none';\n      moonIcon.style.display = '';\n      toggle.setAttribute('aria-label', 'Switch to light mode');\n    }\n  }\n\n  function init() {\n    var currentTheme = getTheme();\n    updateToggleButton(currentTheme);\n\n    var toggle = document.getElementById('theme-toggle');\n    if (toggle) {\n      toggle.addEventListener('click', function() {\n        var newTheme = getTheme() === 'dark' ? 'light' : 'dark';\n        setTheme(newTheme);\n      });\n    }\n\n    // Listen for OS preference changes\n    if (window.matchMedia) {\n      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {\n        if (!localStorage.getItem(THEME_KEY)) {\n          setTheme(e.matches ? 'dark' : 'light');\n        }\n      });\n    }\n  }\n\n  if (document.readyState === 'loading') {\n    document.addEventListener('DOMContentLoaded', init);\n  } else {\n    init();\n  }\n})();\n```\n\n## Conventions\n\n- Match existing code style: IIFE pattern, `var` declarations, `'use strict'`\n- No ES6+ syntax (existing code uses ES5)\n- CSS: use the existing section comment pattern `/* ========== Section ========== */`\n- No new dependencies\n- Keep SVG icons inline (matching the existing help button pattern)\n\n## Gotchas\n\n- The `@keyframes rowComplete` uses a hardcoded `#52b788` — CSS custom properties work in keyframes in modern browsers but NOT in older ones. Use `var(--color-success)` — the browser support is fine for this app's target audience.\n- The `.hidden` class uses `display: none` — use this for icon toggling or use inline `style.display`.\n- The inline head script must NOT reference DOM elements (they don't exist yet) — it only sets `data-theme` on `documentElement`.\n- The `prefers-color-scheme` check: default to dark if no preference and no saved value (the app was designed dark-first).\n- Make sure `.btn-primary` text stays white in both themes (it's on a blue background).",
+      "checklist": [
+        {
+          "id": "t1",
+          "description": "Add new CSS custom properties to :root for all hardcoded colors",
+          "steps": [
+            "Add --border-subtle, --border-light, --border-medium, --hover-overlay, --title-gradient-start, --title-gradient-end, --cell-hover-bg, --cell-hover-border, --color-fixed-border, --color-complete-border, --backdrop-bg, --shadow-heavy, --bg-inset, --color-success, --color-success-bg to :root with dark theme values",
+            "Replace all hardcoded color values in style.css with the corresponding CSS variables",
+            "Verify no hardcoded theme-dependent colors remain in the CSS (search for rgba and hex colors)"
+          ],
+          "passes": false
+        },
+        {
+          "id": "t2",
+          "description": "Define complete light theme via [data-theme='light'] selector",
+          "steps": [
+            "Add [data-theme='light'] block after :root in style.css overriding all color variables",
+            "Use the warm paper palette from claudeMd: cream backgrounds, dark slate text, adjusted greens and golds",
+            "Open index.html in browser, manually add data-theme='light' to html element, verify all components render correctly"
+          ],
+          "passes": false
+        },
+        {
+          "id": "t3",
+          "description": "Add theme toggle button in the header",
+          "steps": [
+            "Replace .header-spacer div with a theme toggle button using header-btn class",
+            "Include inline sun SVG (for light mode display) and moon SVG (for dark mode display)",
+            "Add aria-label attribute that changes based on current theme",
+            "Verify button is visible and aligned correctly in the header"
+          ],
+          "passes": false
+        },
+        {
+          "id": "t4",
+          "description": "Add inline theme initialization script in <head> to prevent flash",
+          "steps": [
+            "Add inline <script> in <head> after the CSS link that reads localStorage('theme')",
+            "If saved preference exists, set data-theme on documentElement immediately",
+            "If no saved preference, check prefers-color-scheme media query and set accordingly",
+            "Verify no flash of wrong theme on page reload"
+          ],
+          "passes": false
+        },
+        {
+          "id": "t5",
+          "description": "Create js/theme.js with toggle logic and persistence",
+          "steps": [
+            "Create js/theme.js using IIFE pattern with 'use strict' (matching existing code style)",
+            "Implement toggle click handler that switches data-theme and saves to localStorage",
+            "Implement icon visibility toggling (sun shown in light mode, moon shown in dark mode)",
+            "Update aria-label on toggle based on current theme",
+            "Add script tag for theme.js in index.html before confetti.js"
+          ],
+          "passes": false
+        },
+        {
+          "id": "t6",
+          "description": "OS preference detection and change listener",
+          "steps": [
+            "When no localStorage preference exists, default to prefers-color-scheme result",
+            "Add matchMedia change event listener so theme updates if OS preference changes (only when user hasn't manually set preference)",
+            "Test by toggling OS dark mode with no saved localStorage value"
+          ],
+          "passes": false
+        },
+        {
+          "id": "t7",
+          "description": "All UI components render correctly in light mode",
+          "steps": [
+            "Verify grid cells: empty, fixed (green), selected (gold), swap-target, complete states all look correct",
+            "Verify modals: help modal and completion modal backgrounds, text, and buttons are readable",
+            "Verify header: title gradient, help button, toggle button, border all render properly",
+            "Verify swap counter, message bar, footer text are all readable",
+            "Verify share preview and result words in completion modal"
+          ],
+          "passes": false
+        },
+        {
+          "id": "t8",
+          "description": "Confetti celebration works in both themes",
+          "steps": [
+            "Confetti uses canvas with fixed bright colors on transparent overlay — verify it displays correctly against light background",
+            "Complete a puzzle in light mode and verify confetti is visible"
+          ],
+          "passes": false
+        }
+      ],
+      "quality_checklist": [
+        {
+          "id": "q1",
+          "description": "No hardcoded theme-dependent colors remain in CSS outside :root and [data-theme] blocks",
+          "steps": [
+            "Search style.css for hex colors (#xxx) and rgba values outside of :root/[data-theme='light'] blocks",
+            "Verify all found colors are either theme-independent (e.g., white on .btn-primary) or use var() references"
+          ],
+          "passes": false
+        },
+        {
+          "id": "q2",
+          "description": "Theme JavaScript follows existing code conventions",
+          "steps": [
+            "Verify theme.js uses IIFE, 'use strict', var declarations (no let/const/arrow functions)",
+            "Verify no unnecessary complexity — simple toggle, save, restore pattern"
+          ],
+          "passes": false
+        },
+        {
+          "id": "q3",
+          "description": "Light theme palette is intentional and polished, not a mechanical inversion",
+          "steps": [
+            "Check that light theme has appropriate contrast ratios for text readability",
+            "Verify green (fixed/complete) cells are distinct and readable on light backgrounds",
+            "Verify selection gold stands out against cream background"
+          ],
+          "passes": false
+        },
+        {
+          "id": "q4",
+          "description": "No flash of wrong theme on page load",
+          "steps": [
+            "Verify inline script in <head> sets data-theme before body renders",
+            "Test by setting theme to light, reloading — should not flash dark then switch"
+          ],
+          "passes": false
+        }
+      ]
+    }
+  ],
+  "integration": null,
+  "verification": {
+    "buildCommand": null,
+    "runCommand": "python3 -m http.server 3000",
+    "readySignal": "Serving HTTP",
+    "appType": "web",
+    "port": 3000,
+    "checks": [
+      {
+        "id": "v1",
+        "description": "Theme toggle is visible and functional in header",
+        "steps": [
+          "Open http://localhost:3000 in browser",
+          "Verify a moon/sun icon button is visible in the top-right of the header",
+          "Click the toggle — theme should switch between dark and light",
+          "Verify the icon changes (moon in dark mode, sun in light mode)"
+        ],
+        "passes": false
+      },
+      {
+        "id": "v2",
+        "description": "Theme preference persists across page reloads",
+        "steps": [
+          "Switch to light mode via toggle",
+          "Reload the page",
+          "Verify the app loads in light mode without flash of dark mode",
+          "Check localStorage contains 'theme' key with value 'light'"
+        ],
+        "passes": false
+      },
+      {
+        "id": "v3",
+        "description": "All UI components render correctly in light mode",
+        "steps": [
+          "In light mode, verify: cream/off-white background, dark text, readable grid cells",
+          "Verify fixed cells show green background with readable text",
+          "Click a cell — verify gold selection highlight is visible",
+          "Open help modal — verify it's readable with proper contrast",
+          "Verify swap counter and footer text are visible"
+        ],
+        "passes": false
+      },
+      {
+        "id": "v4",
+        "description": "All UI components render correctly in dark mode",
+        "steps": [
+          "Switch back to dark mode",
+          "Verify dark background, light text, all cells render as before",
+          "Open help modal — verify dark theme styling",
+          "Verify no visual regressions from original dark theme"
+        ],
+        "passes": false
+      },
+      {
+        "id": "v5",
+        "description": "Toggle has correct aria labels",
+        "steps": [
+          "In dark mode, inspect toggle button — aria-label should say 'Switch to light mode'",
+          "Click toggle to switch to light mode — aria-label should say 'Switch to dark mode'"
+        ],
+        "passes": false
+      }
+    ]
+  }
+}
