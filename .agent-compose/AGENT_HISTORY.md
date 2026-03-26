@@ -13,3 +13,10 @@
 - **quality_checklist**: 5 items verified (all passing)
 - **Findings**: 2 code quality issues fixed (stale state.selected on daily restore, missing interval guard in startSpeedRunTimer); 2 error handling notes (pre-existing empty catch in loadState, comment-only catch in saveState — MEDIUM, not blocking); no tests in project (static site)
 - **Outcome**: success / exit_signal: true (fixes committed)
+
+## conflict-resolver — 2026-03-26T19:35:43Z
+
+- **Conflict**: .agent-compose/current (add/add), .agent-compose/AGENT_HISTORY.md (add/add)
+- **Resolution**: accepted upstream (theirs) for both agent artifact files
+- **Tests run**: no — only agent artifact conflicts, no code conflicts
+- **Outcome**: success
