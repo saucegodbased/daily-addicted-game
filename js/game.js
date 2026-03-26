@@ -659,6 +659,10 @@
     }
 
     function startSpeedRunTimer() {
+        if (speedrunState.intervalId) {
+            clearInterval(speedrunState.intervalId);
+            speedrunState.intervalId = null;
+        }
         speedrunState.timer = 150;
         updateTimerDisplay();
         speedrunState.intervalId = setInterval(function() {
@@ -753,6 +757,7 @@
             state.fixed = puzzle.fixed;
             state.words = puzzle.words;
             state.par = puzzle.par;
+            state.selected = null;
         } else {
             state.date = dateStr;
             loadPuzzleIntoState(puzzle);
