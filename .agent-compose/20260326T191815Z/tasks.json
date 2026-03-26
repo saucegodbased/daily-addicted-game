@@ -6,7 +6,7 @@
       "title": "Implement Speed Run mode for Daily Addicted",
       "description": "Add a Speed Run game mode alongside the existing daily puzzle. This includes: a mode selection screen, a 2.5-minute countdown timer, puzzle solved counter, auto-advance to next puzzle on completion, a results modal when time expires, and full isolation from daily puzzle localStorage state.",
       "acceptance_criteria": "1. Mode selection entry point with 'Daily Puzzle' and 'Speed Run' buttons\n2. 150-second countdown timer displayed prominently\n3. Same puzzle grid and swap mechanics as daily mode\n4. Auto-load new random puzzle on completion\n5. Visible solved puzzle counter\n6. 'Speed Run Over' modal on timer expiry showing total solved\n7. No interference with daily puzzle localStorage\n8. Daily puzzle mode unchanged\n9. Random seeds for speed run puzzles",
-      "claudeMd": "# Project Context\n\nYou are adding a Speed Run mode to a vanilla HTML/CSS/JS word puzzle game (\"Daily Addicted\"). There is NO build system, NO framework — just raw files served statically.\n\n## Design Direction: \"Dark Arcade\"\n\nThe existing dark theme uses `--bg-primary: #0f0f1a`, `--bg-secondary: #1a1a2e`, `--color-accent: #e94560`. For speed run:\n- Timer text uses `--color-accent` (#e94560) when under 30 seconds, with a pulse animation\n- Solved counter in bold white\n- Mode selector: two large full-width buttons stacked vertically. Daily = `--color-btn-primary` (#4361ee), Speed Run = `--color-accent` (#e94560)\n- Keep the existing font (`--font-main`)\n\n## Architecture\n\nAll code lives in 3 files: `index.html`, `css/style.css`, `js/game.js`. The game.js uses an IIFE pattern — all new code goes inside the existing IIFE.\n\n### Key existing functions to reuse:\n- `generatePuzzle(seed)` — takes numeric seed, returns `{solution, grid, fixed, words, par}`\n- `mulberry32(seed)` — seeded RNG\n- `selectWords(rng)` — picks 4 valid words\n- `render()` — re-renders grid + swap counter\n- `checkRows()` — checks which rows match solution\n- `showMessage(text)` — toast message\n\n### Key existing state:\n- `state` object with: `grid`, `solution`, `fixed`, `words`, `par`, `swaps`, `selected`, `completed`, `rowsComplete`, `initialGrid`, `date`\n- `STORAGE_KEY = 'daily-addicted-state'` — daily puzzle persistence\n- `saveState()` / `loadState()` — localStorage for daily only\n\n## Implementation Steps\n\n### 1. HTML changes (index.html)\n\nAdd BEFORE `<main>`:\n```html\n<div id=\"mode-select\">\n  <div class=\"mode-select-title\">Daily Addicted</div>\n  <div class=\"mode-select-subtitle\">Choose your mode</div>\n  <div class=\"mode-buttons\">\n    <button id=\"mode-daily-btn\" class=\"mode-btn mode-btn-daily\">\n      <span class=\"mode-btn-icon\">📅</span>\n      <span class=\"mode-btn-label\">Daily Puzzle</span>\n      <span class=\"mode-btn-desc\">Today's challenge</span>\n    </button>\n    <button id=\"mode-speedrun-btn\" class=\"mode-btn mode-btn-speedrun\">\n      <span class=\"mode-btn-icon\">⚡</span>\n      <span class=\"mode-btn-label\">Speed Run</span>\n      <span class=\"mode-btn-desc\">2.5 minutes, solve as many as you can</span>\n    </button>\n  </div>\n</div>\n```\n\nAdd INSIDE `<main>`, before `#grid-container`:\n```html\n<div id=\"speedrun-bar\" class=\"hidden\">\n  <div id=\"speedrun-timer\">2:30</div>\n  <div id=\"speedrun-solved\">Solved: 0</div>\n</div>\n```\n\nAdd a new modal for speed run results (after complete-modal):\n```html\n<div id=\"speedrun-modal\" class=\"modal hidden\" role=\"dialog\" aria-modal=\"true\">\n  <div class=\"modal-backdrop\"></div>\n  <div class=\"modal-content\">\n    <h2 id=\"speedrun-title\">Speed Run Over!</h2>\n    <div id=\"speedrun-result-stats\"></div>\n    <button id=\"speedrun-again-btn\" class=\"btn btn-speedrun\">Play Again</button>\n    <button id=\"speedrun-menu-btn\" class=\"btn btn-secondary\">Back to Menu</button>\n  </div>\n</div>\n```\n\n### 2. CSS changes (css/style.css)\n\nAdd styles for:\n- `#mode-select` — full-screen centered flex column, shown by default\n- `.mode-btn` — large cards with icon, label, description\n- `.mode-btn-daily` — uses `--color-btn-primary`\n- `.mode-btn-speedrun` — uses `--color-accent`\n- `#speedrun-bar` — flex row, space-between, with timer and counter\n- `#speedrun-timer` — large bold font, monospace digits\n- `#speedrun-timer.critical` — red color + pulse animation\n- `.btn-speedrun` — accent color button\n- `.btn-secondary` — outline/ghost button\n- `#speedrun-modal` styles\n- Hide `<main>`, `<header>`, `<footer>` when mode-select is shown (use `.game-active` class on `#app`)\n\n### 3. JS changes (js/game.js)\n\nInside the existing IIFE:\n\n**New state properties:**\n```js\nvar gameMode = null; // 'daily' | 'speedrun'\nvar speedrunState = {\n  timer: 150,\n  intervalId: null,\n  solved: 0,\n  active: false\n};\n```\n\n**Mode selection:**\n- `showModeSelect()` — show `#mode-select`, hide game, remove `.game-active`\n- `startDailyMode()` — set `gameMode = 'daily'`, hide mode select, add `.game-active`, run existing `init()` logic\n- `startSpeedRunMode()` — set `gameMode = 'speedrun'`, hide mode select, add `.game-active`, reset speedrun state, generate first puzzle with random seed, start timer, show speedrun bar, render\n\n**Random seed for speed run:**\n```js\nfunction getRandomSeed() {\n  return Math.floor(Math.random() * 2147483647) + 1;\n}\n```\n\n**Timer:**\n```js\nfunction startSpeedRunTimer() {\n  speedrunState.timer = 150;\n  speedrunState.active = true;\n  updateTimerDisplay();\n  speedrunState.intervalId = setInterval(function() {\n    speedrunState.timer--;\n    updateTimerDisplay();\n    if (speedrunState.timer <= 0) {\n      endSpeedRun();\n    }\n  }, 1000);\n}\n```\n\n**On puzzle complete in speed run:**\nModify the `handleCellClick` completion block. When `allComplete && gameMode === 'speedrun'`:\n- Do NOT call `saveState()`\n- Do NOT show confetti or completion modal\n- Increment `speedrunState.solved`\n- Update solved display\n- Generate new puzzle with `getRandomSeed()`\n- Reset state (grid, solution, fixed, words, par, swaps, selected, completed, rowsComplete)\n- Call `render()`\n\n**On timer expiry:**\n- `endSpeedRun()` — clear interval, set `speedrunState.active = false`, set `state.completed = true` (to disable input), show speedrun results modal\n\n**State isolation:**\n- `saveState()` should early-return if `gameMode === 'speedrun'`\n- OR: simply never call `saveState()` from speed run paths (already handled by the completion logic change)\n- Add guard at top of `saveState()`: `if (gameMode === 'speedrun') return;`\n\n**Refactor init():**\n- Rename current `init()` to `initDailyPuzzle()`\n- New `init()` just sets up mode select event listeners and shows the mode selector\n- `startDailyMode()` calls `initDailyPuzzle()`\n- `startSpeedRunMode()` calls `initSpeedRunPuzzle()`\n\n**Header in speed run mode:**\n- Hide `#puzzle-number`\n- Optionally change subtitle or leave as-is\n\n**Footer in speed run mode:**\n- Hide the \"new puzzle every day\" text or change it\n\n## Gotchas\n\n- The IIFE pattern means all new variables/functions must be declared inside the existing `(function() { ... })()` block\n- `state.selected` must be reset when loading a new puzzle in speed run\n- The `render()` function re-creates DOM elements, so event listeners are reattached each time — this is fine\n- Make sure `checkRows()` is called after generating a new speed run puzzle (in case a row is already correct)\n- The `handleCellClick` completion path currently calls `saveState()` and `showCompletionModal()` — these must be gated on `gameMode`\n- Timer should stop if user navigates away (not critical for MVP, but `endSpeedRun()` cleanup matters)\n- The swap counter should reset for each new puzzle in speed run mode\n- `countdownInterval` (midnight countdown) should NOT run in speed run mode",
+      "claudeMd": "# Project Context\n\nYou are adding a Speed Run mode to a vanilla HTML/CSS/JS word puzzle game (\"Daily Addicted\"). There is NO build system, NO framework \u2014 just raw files served statically.\n\n## Design Direction: \"Dark Arcade\"\n\nThe existing dark theme uses `--bg-primary: #0f0f1a`, `--bg-secondary: #1a1a2e`, `--color-accent: #e94560`. For speed run:\n- Timer text uses `--color-accent` (#e94560) when under 30 seconds, with a pulse animation\n- Solved counter in bold white\n- Mode selector: two large full-width buttons stacked vertically. Daily = `--color-btn-primary` (#4361ee), Speed Run = `--color-accent` (#e94560)\n- Keep the existing font (`--font-main`)\n\n## Architecture\n\nAll code lives in 3 files: `index.html`, `css/style.css`, `js/game.js`. The game.js uses an IIFE pattern \u2014 all new code goes inside the existing IIFE.\n\n### Key existing functions to reuse:\n- `generatePuzzle(seed)` \u2014 takes numeric seed, returns `{solution, grid, fixed, words, par}`\n- `mulberry32(seed)` \u2014 seeded RNG\n- `selectWords(rng)` \u2014 picks 4 valid words\n- `render()` \u2014 re-renders grid + swap counter\n- `checkRows()` \u2014 checks which rows match solution\n- `showMessage(text)` \u2014 toast message\n\n### Key existing state:\n- `state` object with: `grid`, `solution`, `fixed`, `words`, `par`, `swaps`, `selected`, `completed`, `rowsComplete`, `initialGrid`, `date`\n- `STORAGE_KEY = 'daily-addicted-state'` \u2014 daily puzzle persistence\n- `saveState()` / `loadState()` \u2014 localStorage for daily only\n\n## Implementation Steps\n\n### 1. HTML changes (index.html)\n\nAdd BEFORE `<main>`:\n```html\n<div id=\"mode-select\">\n  <div class=\"mode-select-title\">Daily Addicted</div>\n  <div class=\"mode-select-subtitle\">Choose your mode</div>\n  <div class=\"mode-buttons\">\n    <button id=\"mode-daily-btn\" class=\"mode-btn mode-btn-daily\">\n      <span class=\"mode-btn-icon\">\ud83d\udcc5</span>\n      <span class=\"mode-btn-label\">Daily Puzzle</span>\n      <span class=\"mode-btn-desc\">Today's challenge</span>\n    </button>\n    <button id=\"mode-speedrun-btn\" class=\"mode-btn mode-btn-speedrun\">\n      <span class=\"mode-btn-icon\">\u26a1</span>\n      <span class=\"mode-btn-label\">Speed Run</span>\n      <span class=\"mode-btn-desc\">2.5 minutes, solve as many as you can</span>\n    </button>\n  </div>\n</div>\n```\n\nAdd INSIDE `<main>`, before `#grid-container`:\n```html\n<div id=\"speedrun-bar\" class=\"hidden\">\n  <div id=\"speedrun-timer\">2:30</div>\n  <div id=\"speedrun-solved\">Solved: 0</div>\n</div>\n```\n\nAdd a new modal for speed run results (after complete-modal):\n```html\n<div id=\"speedrun-modal\" class=\"modal hidden\" role=\"dialog\" aria-modal=\"true\">\n  <div class=\"modal-backdrop\"></div>\n  <div class=\"modal-content\">\n    <h2 id=\"speedrun-title\">Speed Run Over!</h2>\n    <div id=\"speedrun-result-stats\"></div>\n    <button id=\"speedrun-again-btn\" class=\"btn btn-speedrun\">Play Again</button>\n    <button id=\"speedrun-menu-btn\" class=\"btn btn-secondary\">Back to Menu</button>\n  </div>\n</div>\n```\n\n### 2. CSS changes (css/style.css)\n\nAdd styles for:\n- `#mode-select` \u2014 full-screen centered flex column, shown by default\n- `.mode-btn` \u2014 large cards with icon, label, description\n- `.mode-btn-daily` \u2014 uses `--color-btn-primary`\n- `.mode-btn-speedrun` \u2014 uses `--color-accent`\n- `#speedrun-bar` \u2014 flex row, space-between, with timer and counter\n- `#speedrun-timer` \u2014 large bold font, monospace digits\n- `#speedrun-timer.critical` \u2014 red color + pulse animation\n- `.btn-speedrun` \u2014 accent color button\n- `.btn-secondary` \u2014 outline/ghost button\n- `#speedrun-modal` styles\n- Hide `<main>`, `<header>`, `<footer>` when mode-select is shown (use `.game-active` class on `#app`)\n\n### 3. JS changes (js/game.js)\n\nInside the existing IIFE:\n\n**New state properties:**\n```js\nvar gameMode = null; // 'daily' | 'speedrun'\nvar speedrunState = {\n  timer: 150,\n  intervalId: null,\n  solved: 0,\n  active: false\n};\n```\n\n**Mode selection:**\n- `showModeSelect()` \u2014 show `#mode-select`, hide game, remove `.game-active`\n- `startDailyMode()` \u2014 set `gameMode = 'daily'`, hide mode select, add `.game-active`, run existing `init()` logic\n- `startSpeedRunMode()` \u2014 set `gameMode = 'speedrun'`, hide mode select, add `.game-active`, reset speedrun state, generate first puzzle with random seed, start timer, show speedrun bar, render\n\n**Random seed for speed run:**\n```js\nfunction getRandomSeed() {\n  return Math.floor(Math.random() * 2147483647) + 1;\n}\n```\n\n**Timer:**\n```js\nfunction startSpeedRunTimer() {\n  speedrunState.timer = 150;\n  speedrunState.active = true;\n  updateTimerDisplay();\n  speedrunState.intervalId = setInterval(function() {\n    speedrunState.timer--;\n    updateTimerDisplay();\n    if (speedrunState.timer <= 0) {\n      endSpeedRun();\n    }\n  }, 1000);\n}\n```\n\n**On puzzle complete in speed run:**\nModify the `handleCellClick` completion block. When `allComplete && gameMode === 'speedrun'`:\n- Do NOT call `saveState()`\n- Do NOT show confetti or completion modal\n- Increment `speedrunState.solved`\n- Update solved display\n- Generate new puzzle with `getRandomSeed()`\n- Reset state (grid, solution, fixed, words, par, swaps, selected, completed, rowsComplete)\n- Call `render()`\n\n**On timer expiry:**\n- `endSpeedRun()` \u2014 clear interval, set `speedrunState.active = false`, set `state.completed = true` (to disable input), show speedrun results modal\n\n**State isolation:**\n- `saveState()` should early-return if `gameMode === 'speedrun'`\n- OR: simply never call `saveState()` from speed run paths (already handled by the completion logic change)\n- Add guard at top of `saveState()`: `if (gameMode === 'speedrun') return;`\n\n**Refactor init():**\n- Rename current `init()` to `initDailyPuzzle()`\n- New `init()` just sets up mode select event listeners and shows the mode selector\n- `startDailyMode()` calls `initDailyPuzzle()`\n- `startSpeedRunMode()` calls `initSpeedRunPuzzle()`\n\n**Header in speed run mode:**\n- Hide `#puzzle-number`\n- Optionally change subtitle or leave as-is\n\n**Footer in speed run mode:**\n- Hide the \"new puzzle every day\" text or change it\n\n## Gotchas\n\n- The IIFE pattern means all new variables/functions must be declared inside the existing `(function() { ... })()` block\n- `state.selected` must be reset when loading a new puzzle in speed run\n- The `render()` function re-creates DOM elements, so event listeners are reattached each time \u2014 this is fine\n- Make sure `checkRows()` is called after generating a new speed run puzzle (in case a row is already correct)\n- The `handleCellClick` completion path currently calls `saveState()` and `showCompletionModal()` \u2014 these must be gated on `gameMode`\n- Timer should stop if user navigates away (not critical for MVP, but `endSpeedRun()` cleanup matters)\n- The swap counter should reset for each new puzzle in speed run mode\n- `countdownInterval` (midnight countdown) should NOT run in speed run mode",
       "checklist": [
         {
           "id": "t1",
@@ -14,12 +14,12 @@
           "steps": [
             "Add #mode-select div to index.html before <main> with two mode buttons",
             "Add CSS for mode-select layout: centered, full-height, dark background",
-            "Style mode buttons as large cards — daily (blue #4361ee), speed run (red #e94560)",
-            "Add .game-active class logic to #app — hide mode-select, show header/main/footer",
+            "Style mode buttons as large cards \u2014 daily (blue #4361ee), speed run (red #e94560)",
+            "Add .game-active class logic to #app \u2014 hide mode-select, show header/main/footer",
             "Wire up click handlers for mode buttons in JS init()",
             "Verify: page loads showing mode selector, both buttons visible and styled"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "t2",
@@ -27,10 +27,10 @@
           "steps": [
             "Refactor existing init() into initDailyPuzzle() containing all current logic",
             "startDailyMode() sets gameMode='daily', adds .game-active, calls initDailyPuzzle()",
-            "Verify: clicking Daily Puzzle loads the game with same behavior — grid, swaps, localStorage save/load, completion modal, confetti, share, countdown to midnight",
+            "Verify: clicking Daily Puzzle loads the game with same behavior \u2014 grid, swaps, localStorage save/load, completion modal, confetti, share, countdown to midnight",
             "Verify: localStorage key 'daily-addicted-state' is still used correctly"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "t3",
@@ -40,10 +40,10 @@
             "Style timer: large bold text, monospace digits (font-variant-numeric: tabular-nums)",
             "Implement startSpeedRunTimer() with setInterval decrementing every second",
             "Format display as M:SS (e.g., '2:30', '1:05', '0:03')",
-            "Add .critical class to timer when <= 30 seconds — red color + pulse animation",
+            "Add .critical class to timer when <= 30 seconds \u2014 red color + pulse animation",
             "Verify: timer counts down from 2:30, turns red at 0:30, reaches 0:00"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "t4",
@@ -55,7 +55,7 @@
             "Call checkRows() and render() after setup",
             "Verify: speed run shows a valid puzzle grid with same 4x5 layout, fixed cells, and swap mechanics"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "t5",
@@ -68,7 +68,7 @@
             "Do NOT call saveState(), showCompletionModal(), or launchConfetti()",
             "Verify: completing a puzzle in speed run immediately shows a new different puzzle"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "t6",
@@ -79,7 +79,7 @@
             "Style counter prominently in the speedrun bar",
             "Verify: counter starts at 0 and increments with each completed puzzle"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "t7",
@@ -92,7 +92,7 @@
             "Wire 'Back to Menu' button to return to mode selector",
             "Verify: when timer hits 0, input is disabled, modal shows with correct count"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "t8",
@@ -100,10 +100,10 @@
           "steps": [
             "Add guard in saveState(): if (gameMode === 'speedrun') return",
             "Ensure no localStorage writes happen during speed run gameplay",
-            "Verify: play speed run, then switch to daily — daily puzzle state is preserved",
+            "Verify: play speed run, then switch to daily \u2014 daily puzzle state is preserved",
             "Verify: localStorage 'daily-addicted-state' is unchanged after speed run session"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "t9",
@@ -115,7 +115,7 @@
             "Hide #speedrun-bar in daily mode",
             "Verify: switching modes shows appropriate UI elements for each mode"
           ],
-          "passes": false
+          "passes": true
         }
       ],
       "quality_checklist": [
@@ -127,7 +127,7 @@
             "Verify saveState() guard prevents any localStorage writes in speed run",
             "Ensure no dead code paths from the refactoring"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "q2",
@@ -137,7 +137,7 @@
             "Check that switching to menu or replaying clears any existing interval first",
             "Check that countdownInterval (midnight) is not started in speed run mode"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "q3",
@@ -145,9 +145,9 @@
           "steps": [
             "Verify new CSS uses existing custom properties (--bg-primary, --color-accent, etc.)",
             "Check naming follows existing patterns (kebab-case IDs, BEM-ish classes)",
-            "No inline styles in JS — all styling via classes"
+            "No inline styles in JS \u2014 all styling via classes"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "q4",
@@ -157,7 +157,7 @@
             "No new globals on window except if explicitly needed",
             "var declarations used consistently (matching existing code style, not let/const)"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "q5",
@@ -167,14 +167,14 @@
             "Timer and counter are readable at all breakpoints",
             "Speedrun modal matches existing modal styling patterns"
           ],
-          "passes": false
+          "passes": true
         }
       ]
     }
   ],
   "integration": null,
   "verification": {
-    "buildCommand": "echo 'No build step — static files'",
+    "buildCommand": "echo 'No build step \u2014 static files'",
     "runCommand": "python3 -m http.server 3000",
     "readySignal": "Serving HTTP",
     "appType": "web",
@@ -188,7 +188,7 @@
           "Verify mode selector is visible with 'Daily Puzzle' and 'Speed Run' buttons",
           "Verify game grid is NOT visible until a mode is selected"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "id": "v2",
@@ -196,10 +196,10 @@
         "steps": [
           "Click 'Daily Puzzle' button",
           "Verify grid loads with puzzle number, swap counter, and same mechanics",
-          "Make a swap — verify counter increments and state saves to localStorage",
-          "Reload page, select Daily Puzzle — verify state is restored"
+          "Make a swap \u2014 verify counter increments and state saves to localStorage",
+          "Reload page, select Daily Puzzle \u2014 verify state is restored"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "id": "v3",
@@ -210,7 +210,7 @@
           "Verify 'Solved: 0' counter is visible",
           "Verify puzzle grid is displayed with working swap mechanics"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "id": "v4",
@@ -221,7 +221,7 @@
           "Verify solved counter increments to 1",
           "Verify timer continues running"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "id": "v5",
@@ -230,10 +230,10 @@
           "Let timer reach 0:00 (or test with shortened timer)",
           "Verify 'Speed Run Over' modal appears showing total puzzles solved",
           "Verify grid input is disabled (clicks do nothing)",
-          "Click 'Play Again' — verify new speed run session starts",
-          "Click 'Back to Menu' — verify mode selector is shown"
+          "Click 'Play Again' \u2014 verify new speed run session starts",
+          "Click 'Back to Menu' \u2014 verify mode selector is shown"
         ],
-        "passes": false
+        "passes": true
       },
       {
         "id": "v6",
@@ -244,7 +244,7 @@
           "Go back to menu, select daily puzzle",
           "Verify daily puzzle state is exactly as left (same grid, same swap count)"
         ],
-        "passes": false
+        "passes": true
       }
     ]
   }
