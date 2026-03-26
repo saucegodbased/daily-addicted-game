@@ -1,0 +1,65 @@
+{
+  "quality": "skip",
+  "tasks": [
+    {
+      "id": "main",
+      "title": "Lighten light mode theme and fix hardcoded colors",
+      "description": "Update the [data-theme='light'] CSS custom properties to use a cleaner, brighter palette. Fix hardcoded gradients and borders that don't respond to theme changes.",
+      "acceptance_criteria": "Light mode has noticeably lighter/whiter backgrounds, softer text colors, and no hardcoded dark-theme colors leaking through. The mode select title gradient and .btn-secondary border use CSS variables.",
+      "claudeMd": "# Project Context\n\nYou are updating the light mode theme for a vanilla HTML/CSS/JS word puzzle game (Daily Addicted).\n\n## What to change\n\nAll changes are in `css/style.css`.\n\n### 1. Update `[data-theme='light']` block (lines 50-84)\n\nReplace the warm beige palette with a cleaner, brighter one:\n\n| Variable | Old | New |\n|---|---|---|\n| `--bg-primary` | `#f5f0e8` | `#fafafa` |\n| `--bg-secondary` | `#ede8df` | `#f3f3f5` |\n| `--bg-surface` | `#e2ddd4` | `#e8e8ec` |\n| `--text-primary` | `#2c2c34` | `#3a3a44` |\n| `--text-secondary` | `#6b6b78` | `#8a8a98` |\n| `--text-muted` | `#9b9ba8` | `#b0b0bc` |\n| `--cell-hover-bg` | `#d8d3ca` | `#dddde2` |\n| `--cell-hover-border` | `rgba(0,0,0,0.08)` | `rgba(0,0,0,0.06)` |\n| `--title-gradient-start` | `#2c2c34` | `#3a3a44` |\n| `--title-gradient-end` | `#5a5a68` | `#8a8a98` |\n\n### 2. Fix `.mode-select-title` hardcoded gradient (line 136)\n\nChange:\n```css\nbackground: linear-gradient(135deg, #e8e8f0, #a8a8c0);\n```\nTo:\n```css\nbackground: linear-gradient(135deg, var(--title-gradient-start), var(--title-gradient-end));\n```\n\n### 3. Fix `.btn-secondary` hardcoded border (line 342)\n\nChange:\n```css\nborder: 1px solid rgba(255, 255, 255, 0.15);\n```\nTo:\n```css\nborder: 1px solid var(--border-light);\n```\n\n### 4. Fix `.btn-secondary:hover` hardcoded background (line 346)\n\nChange:\n```css\nbackground: rgba(255, 255, 255, 0.05);\n```\nTo:\n```css\nbackground: var(--hover-overlay);\n```\n\n## Conventions\n- This is a static HTML/CSS/JS project, no build step\n- Theme is toggled via `data-theme` attribute on `<html>`\n- All theme colors should go through CSS custom properties\n- Do not change the dark theme (`:root` block)\n\n## Testing\n- Open `index.html` in browser, toggle to light mode, verify backgrounds are noticeably lighter/whiter and text is readable but softer\n- Check mode select screen, game screen, and modals all look correct",
+      "checklist": [
+        {
+          "id": "t1",
+          "description": "Update light theme CSS variables to use brighter, cleaner palette",
+          "steps": [
+            "Edit the [data-theme='light'] block in css/style.css",
+            "Change --bg-primary to #fafafa, --bg-secondary to #f3f3f5, --bg-surface to #e8e8ec",
+            "Change --text-primary to #3a3a44, --text-secondary to #8a8a98, --text-muted to #b0b0bc",
+            "Update --cell-hover-bg to #dddde2, --title-gradient-start/end to match new text colors"
+          ],
+          "passes": false
+        },
+        {
+          "id": "t2",
+          "description": "Fix hardcoded dark-theme colors that don't respond to theme toggle",
+          "steps": [
+            "Change .mode-select-title gradient to use var(--title-gradient-start) and var(--title-gradient-end)",
+            "Change .btn-secondary border to use var(--border-light)",
+            "Change .btn-secondary:hover background to use var(--hover-overlay)"
+          ],
+          "passes": false
+        }
+      ],
+      "quality_checklist": [
+        {
+          "id": "q1",
+          "description": "No remaining hardcoded color values that should be CSS variables in theme-sensitive contexts",
+          "steps": ["Grep for hardcoded hex colors and rgba values outside of :root and [data-theme] blocks", "Verify any found are intentional (e.g. specific hover states for mode buttons)"],
+          "passes": false
+        }
+      ]
+    }
+  ],
+  "integration": null,
+  "verification": {
+    "buildCommand": "echo 'no build step'",
+    "runCommand": "cd /home/user/workspace-db9ad38b-planner-7fa2610d && python3 -m http.server 3000",
+    "readySignal": "Serving HTTP",
+    "appType": "web",
+    "port": 3000,
+    "checks": [
+      {
+        "id": "v1",
+        "description": "Light mode backgrounds are visibly lighter/whiter than before",
+        "steps": ["Open the app in browser", "Toggle to light mode", "Verify the page background is near-white (#fafafa), not beige", "Verify grid cells have a light gray background, not warm beige"],
+        "passes": false
+      },
+      {
+        "id": "v2",
+        "description": "Mode select title displays correctly in light mode",
+        "steps": ["Load the app in light mode", "Check the 'Daily Addicted' title on the mode select screen uses dark text gradient, not the dark-theme light gradient"],
+        "passes": false
+      }
+    ]
+  }
+}
