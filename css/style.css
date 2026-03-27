@@ -506,8 +506,8 @@ main {
 }
 
 .grid-cell.hinted {
-    background: var(--color-hint);
-    color: var(--color-hint-text);
+    background: #ffffff;
+    color: #ffffff;
     border-color: var(--color-hint-border);
     box-shadow: 0 0 10px var(--color-hint-glow);
 }

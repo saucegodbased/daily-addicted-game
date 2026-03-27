@@ -531,13 +531,13 @@
                 }
 
                 if (state.selected && !state.completed &&
-                    !state.rowsComplete[row] && !state.fixed[row][col] &&
+                    !state.rowsComplete[row] && !state.fixed[row][col] && !isCellHinted(row, col) &&
                     state.selected.col === col &&
                     !(state.selected.row === row && state.selected.col === col)) {
                     cell.classList.add('swap-target');
                 }
 
-                if (!state.completed && !state.rowsComplete[row] && !state.fixed[row][col]) {
+                if (!state.completed && !state.rowsComplete[row] && !state.fixed[row][col] && !isCellHinted(row, col)) {
                     cell.classList.add('clickable');
                     cell.addEventListener('click', createCellHandler(row, col));
                 }
@@ -676,6 +676,7 @@
         if (state.completed) return;
         if (state.rowsComplete[row]) return;
         if (state.fixed[row][col]) return;
+        if (isCellHinted(row, col)) return;
 
         if (!state.selected) {
             state.selected = { row: row, col: col };
@@ -688,7 +689,8 @@
             var c1 = state.selected.col;
 
             if (state.fixed[row][col] || state.rowsComplete[row] ||
-                state.fixed[r1][c1] || state.rowsComplete[r1]) {
+                state.fixed[r1][c1] || state.rowsComplete[r1] ||
+                isCellHinted(row, col) || isCellHinted(r1, c1)) {
                 state.selected = null;
                 render();
                 return;
